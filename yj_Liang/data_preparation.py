@@ -237,4 +237,5 @@ if __name__ == '__main__':
     #train_test_split()
     #extract_features()
     #get_non_pedal_midi()
-    pedal_onset_preparation()
+    #pedal_onset_preparation()
+    pedal_segment_preparation()
