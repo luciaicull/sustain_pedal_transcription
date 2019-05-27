@@ -8,15 +8,18 @@ from constants import *
 
 
 class ExcerptDataset(Dataset):
-    def __init__(self, set):
+    def __init__(self, set, pre_load=True):
         self.set = set
+        self.pre_load = pre_load
         self.excerpt_csv = self.get_csv_file(self.set)
-        self.audio_data = self.load_audio_dict(self.set)
         self.excerpt_list = self.load_excerpt_list(self.excerpt_csv)
 
-        keys = self.audio_data['pedal'].keys()
-        print(keys)
-        self.excerpt_list = [el for el in self.excerpt_list if el[0] in keys]
+        if self.pre_load:
+            self.audio_data = self.load_audio_dict(self.set)
+            keys = self.audio_data['pedal'].keys()
+            # Only necessary when loading incomplete audio files?
+            self.excerpt_list = [el for el in self.excerpt_list if el[0] in keys]
+            print(keys)
 
 
     def __getitem__(self, index):
@@ -26,13 +29,18 @@ class ExcerptDataset(Dataset):
         end = int(excerpt_info[2])
         pedal = 1 if excerpt_info[3]=='p' else 0
 
-        if pedal:
-            audio = self.audio_data['pedal'][file_name]
+        if self.pre_load:
+            if pedal:
+                audio = self.audio_data['pedal'][file_name]
+            else:
+                audio = self.audio_data['non-pedal'][file_name]
         else:
-            audio = self.audio_data['non-pedal'][file_name]
+            audios = self.load_audio_file(file_name)
+            audio = audios['pedal'] if pedal == 1 else audios['non-pedal']
+
         excerpt = audio[start:end]
         print(pedal)
-        pedal = torch.FloatTensor(pedal)
+        pedal = torch.ByteTensor([pedal])
 
         return excerpt, pedal
 
@@ -54,15 +62,8 @@ class ExcerptDataset(Dataset):
 
     @abstractmethod
     def load_audio_dict(self, set):
-        audio_dict = dict()
-        audio_dict['pedal'] = dict()
-        audio_dict['non-pedal'] = dict()
-
-        p_dict = audio_dict['pedal']
-        np_dict = audio_dict['non-pedal']
-
-        pedal_data_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/'
-        nonpedal_data_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/'
+        p_dict = dict()
+        np_dict = dict()       
 
         f = open(ORIGINAL_DATA_PATH + DATA_PATH + set + '.txt', 'r')
         file_names = f.readlines()
@@ -74,16 +75,16 @@ class ExcerptDataset(Dataset):
                 break
             i += 1
             file_name = file_name.split('\n')[0]
+            
+            audios = self.load_audio_file(file_name)
+            # print(pedal_audio)
+            p_dict[file_name] = audios['pedal']
+            np_dict[file_name] = audios['non-pedal']
 
-            pedal_audio, sr = soundfile.read(pedal_data_path + file_name + '.flac', dtype='int16')
-            non_pedal_audio, sr = soundfile.read(nonpedal_data_path + file_name + '.flac', dtype='int16')
-
-            pedal_audio = torch.ShortTensor(pedal_audio)
-            non_pedal_audio = torch.ShortTensor(non_pedal_audio)
-
-            p_dict[file_name] = pedal_audio
-            np_dict[file_name] = non_pedal_audio
-
+        audio_dict = dict()
+        audio_dict['pedal'] = p_dict
+        audio_dict['non-pedal'] = np_dict
+            
         return audio_dict
 
 
@@ -108,11 +109,23 @@ class ExcerptDataset(Dataset):
             excerpt_list.append([line[0], line[1], line[2], 'np'])
 
         return excerpt_list
+    
+
+    @abstractmethod
+    def load_audio_file(self, file_name):
+        pedal_audio, sr = soundfile.read(PEDAL_DATA_PATH + file_name + '.flac', dtype='int16')
+        non_pedal_audio, sr = soundfile.read(NON_PEDAL_DATA_PATH + file_name + '.flac', dtype='int16')
+
+        pedal_audio = torch.ShortTensor(pedal_audio)
+        non_pedal_audio = torch.ShortTensor(non_pedal_audio)
+        audios = {  'pedal': pedal_audio,
+                    'non-pedal': non_pedal_audio}
+        return audios
 
 
 class OnsetExcerptDataset(ExcerptDataset):
-    def __init__(self, set):
-        super(OnsetExcerptDataset, self).__init__(set)
+    def __init__(self, set, pre_load=True):
+        super(OnsetExcerptDataset, self).__init__(set, pre_load=pre_load)
 
     @classmethod
     def get_csv_file(self, set):
@@ -120,16 +133,19 @@ class OnsetExcerptDataset(ExcerptDataset):
 
 
 class SegmentExcerptDataset(ExcerptDataset):
-    def __init__(self, set):
-        super(SegmentExcerptDataset, self).__init__(set)
+    def __init__(self, set, pre_load=True):
+        super(SegmentExcerptDataset, self).__init__(set, pre_load=pre_load)
 
     @classmethod
     def get_csv_file(self, set):
         return set + '_segment'
 
+
 if __name__ == '__main__':
-    dataset = OnsetExcerptDataset('train')
+    dataset = OnsetExcerptDataset('train', pre_load=False)
     a = iter(dataset)
     print('len = ' + str(len(dataset)))
     b = next(a)
     print(b)
+    for audio in dataset:
+        print(audio)
