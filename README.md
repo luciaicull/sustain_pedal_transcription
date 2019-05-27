@@ -1,9 +1,9 @@
 # Extending Sustain Pedel Detection
 
 ## Setup
-Create a virtual environemnt
+Create a virtual environemnt (`Python 2.7`)
 ```
-$ python3 -m venv env
+$ virtualenv venv
 ```
 Activate it
 ```
@@ -11,15 +11,14 @@ $ source env/bin/activate
 ```
 First make sure `pip` is up-to-date by upgrading it
 ```
-$ pip3 install --upgrade pip
+$ pip install --upgrade pip
 ```
 Then install all requierements requiered for this project
 ```
-$ pip3 install -r requirements.txt
+$ pip install -r requirements.txt
 ```
-Followed by pytorch
+Followed by pytorch [official guide](https://pytorch.org/get-started/locally/)
 ```
-$ pip3 install https://download.pytorch.org/whl/cu100/torch-1.1.0-cp36-cp36m-linux_x86_64.whl
-$ pip3 install https://download.pytorch.org/whl/cu100/torchvision-0.3.0-cp36-cp36m-linux_x86_64.whl
-
+$ pip install https://download.pytorch.org/whl/cu100/torch-1.1.0-cp27-cp27mu-linux_x86_64.whl
+$ pip install https://download.pytorch.org/whl/cu100/torchvision-0.3.0-cp27-cp27mu-linux_x86_64.whl
 ```
