@@ -11,12 +11,20 @@ class ExcerptDataset(Dataset):
     def __init__(self, set):
         self.set = set
         self.excerpt_csv = self.get_csv_file(self.set)
+
+        '''
+        # unavailable to use because of lack of RAM size
         self.audio_data = self.load_audio_dict(self.set)
+        '''
+
         self.excerpt_list = self.load_excerpt_list(self.excerpt_csv)
 
+        '''
+        # temporary code for testing dataset
         keys = self.audio_data['pedal'].keys()
         print(keys)
         self.excerpt_list = [el for el in self.excerpt_list if el[0] in keys]
+        '''
 
 
     def __getitem__(self, index):
@@ -24,15 +32,28 @@ class ExcerptDataset(Dataset):
         file_name = excerpt_info[0]
         start = int(excerpt_info[1])
         end = int(excerpt_info[2])
-        pedal = 1 if excerpt_info[3]=='p' else 0
+        pedal = 1.0 if excerpt_info[3]=='p' else 0.0
 
         if pedal:
+            '''
+            # unavailable to be used
             audio = self.audio_data['pedal'][file_name]
+            '''
+            audio_data_path = DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/'
+
         else:
+            '''
+            # unavailable to be used
             audio = self.audio_data['non-pedal'][file_name]
+            '''
+            audio_data_path = DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/'
+
+        audio, sr = soundfile.read(audio_data_path + file_name + '.flac', dtype='int16')
+
         excerpt = audio[start:end]
-        print(pedal)
-        pedal = torch.FloatTensor(pedal)
+        excerpt = torch.ShortTensor(excerpt)
+
+        pedal = torch.FloatTensor([pedal])
 
         return excerpt, pedal
 
@@ -52,6 +73,8 @@ class ExcerptDataset(Dataset):
         '''
         raise NotImplementedError
 
+    '''
+    # unavailable to use because of lack of RAM size
     @abstractmethod
     def load_audio_dict(self, set):
         audio_dict = dict()
@@ -61,10 +84,10 @@ class ExcerptDataset(Dataset):
         p_dict = audio_dict['pedal']
         np_dict = audio_dict['non-pedal']
 
-        pedal_data_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/'
-        nonpedal_data_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/'
+        pedal_data_path = DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/'
+        nonpedal_data_path = DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/'
 
-        f = open(ORIGINAL_DATA_PATH + DATA_PATH + set + '.txt', 'r')
+        f = open(DATA_PATH + set + '.txt', 'r')
         file_names = f.readlines()
 
         i = 0
@@ -85,7 +108,7 @@ class ExcerptDataset(Dataset):
             np_dict[file_name] = non_pedal_audio
 
         return audio_dict
-
+    '''
 
     @abstractmethod
     def load_excerpt_list(self, excerpt_csv):
@@ -97,7 +120,7 @@ class ExcerptDataset(Dataset):
         '''
         excerpt_list = []
 
-        csv_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + excerpt_csv + '.csv'
+        csv_path = DATA_PATH + CONVERTED_WAVE_PATH + excerpt_csv + '.csv'
 
 
         f = open(csv_path, 'r')
