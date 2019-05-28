@@ -13,22 +13,15 @@ MAX_SRC = 2.3
 
 # training parameters
 
-
 # paths
-ORIGINAL_DATA_PATH = '/ssd2/yj_dataset/'
+ORIGINAL_DATA_PATH = '/ssd2/maestro/maestro-v1.0.0/'
 DATA_YEARS = ['2004', '2006', '2008', '2009', '2011', '2013', '2014', '2015', '2017']
 
 TRAIN_YEARS = ['2004', '2006', '2008', '2009', '2013', '2014', '2015', '2017']
 TEST_YEARS = ['2011']
 
-<<<<<<< HEAD
 DATA_PATH = '/ssd2/yj_dataset/'
-=======
-DATA_PATH = ''
->>>>>>> 93648bf9b53d21302328c1dd4095ab3c034a54c1
 CONVERTED_WAVE_PATH = 'converted_wavefile/'  # to rebuild Beici's paper
 NON_Pedal_DATA_PATH = DATA_PATH + 'non_pedal/'
-PEDAL_DATA_PATH = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/'
-NON_PEDAL_DATA_PATH = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/'
 
 SETS = ['train', 'test']

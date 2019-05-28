@@ -233,9 +233,10 @@ def extract_features():
 
 
 if __name__ == '__main__':
+    print('data_preparation')
     #get_file_list_txt()
     #train_test_split()
     #extract_features()
     #get_non_pedal_midi()
     #pedal_onset_preparation()
-    pedal_segment_preparation()
+    #pedal_segment_preparation()
