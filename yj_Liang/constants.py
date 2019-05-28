@@ -21,7 +21,7 @@ DATA_YEARS = ['2004', '2006', '2008', '2009', '2011', '2013', '2014', '2015', '2
 TRAIN_YEARS = ['2004', '2006', '2008', '2009', '2013', '2014', '2015', '2017']
 TEST_YEARS = ['2011']
 
-DATA_PATH = 'yj_dataset/'
+DATA_PATH = '/ssd2/yj_dataset/'
 CONVERTED_WAVE_PATH = 'converted_wavefile/'  # to rebuild Beici's paper
 NON_Pedal_DATA_PATH = DATA_PATH + 'non_pedal/'
 

@@ -70,18 +70,18 @@ def pedal_onset_preparation():
 
 
     for SET in SETS:
-        f = open(ORIGINAL_DATA_PATH + DATA_PATH + SET + '.txt', 'r')
+        f = open(DATA_PATH + SET + '.txt', 'r')
         file_names = f.readlines()
-        f_pedal = open(ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + SET + '_onset_p.csv', 'w')
-        f_nonpedal = open(ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + SET + '_onset_np.csv', 'w')
+        f_pedal = open(DATA_PATH + CONVERTED_WAVE_PATH + SET + '_onset_p.csv', 'w')
+        f_nonpedal = open(DATA_PATH + CONVERTED_WAVE_PATH + SET + '_onset_np.csv', 'w')
         p_writer = csv.writer(f_pedal)
         np_writer = csv.writer(f_nonpedal)
         for file_name in file_names:
             file_name = file_name.split('\n')[0]
             print('      ' + file_name)
             midi_path = ORIGINAL_DATA_PATH + file_name + '.midi'
-            pedal_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/' + file_name + '.wav'
-            non_pedal_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/' + file_name + '.wav'
+            pedal_path = DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/' + file_name + '.wav'
+            non_pedal_path = DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/' + file_name + '.wav'
 
             pedal_audio, sr = librosa.load(pedal_path, sr=SAMPLING_RATE)
             non_pedal_audio, sr = librosa.load(non_pedal_path, sr=SAMPLING_RATE)
@@ -139,11 +139,11 @@ def pedal_segment_preparation():
     max_sp = int(MAX_SRC * SAMPLING_RATE)
 
     for SET in SETS:
-        f = open(ORIGINAL_DATA_PATH + DATA_PATH + SET + '.txt', 'r')
+        f = open(DATA_PATH + SET + '.txt', 'r')
         file_names = f.readlines()
 
-        f_pedal = open(ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + SET + '_segment_p.csv', 'w')
-        f_nonpedal = open(ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + SET + '_segment_np.csv', 'w')
+        f_pedal = open(DATA_PATH + CONVERTED_WAVE_PATH + SET + '_segment_p.csv', 'w')
+        f_nonpedal = open(DATA_PATH + CONVERTED_WAVE_PATH + SET + '_segment_np.csv', 'w')
         p_writer = csv.writer(f_pedal)
         np_writer = csv.writer(f_nonpedal)
 
@@ -187,8 +187,8 @@ def pedal_segment_preparation():
                 pedal_onset_sample = librosa.time_to_samples(pedal_onset_time, sr=SAMPLING_RATE)
                 pedal_offset_sample = librosa.time_to_samples(pedal_offset_time, sr=SAMPLING_RATE)
 
-                pedal_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/' + file_name + '.wav'
-                non_pedal_path = ORIGINAL_DATA_PATH + DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/' + file_name + '.wav'
+                pedal_path = DATA_PATH + CONVERTED_WAVE_PATH + 'pedal/' + file_name + '.wav'
+                non_pedal_path = DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/' + file_name + '.wav'
 
                 pedal_audio, sr = librosa.load(pedal_path, sr=SAMPLING_RATE)
                 non_pedal_audio, sr = librosa.load(non_pedal_path, sr=SAMPLING_RATE)
@@ -219,7 +219,7 @@ def melspectrogram(file_name):
 
 def extract_features():
     for set in SETS:
-        f = open(ORIGINAL_DATA_PATH + DATA_PATH + set + '.txt', 'r')
+        f = open(DATA_PATH + set + '.txt', 'r')
         file_names = f.readlines()
 
         for file_name in file_names:
@@ -228,7 +228,7 @@ def extract_features():
             feature = melspectrogram(audio_file_name)
 
             save_name = file_name.split('/')[0] + '-' + file_name.split('/')[1] + '.npy'
-            np.save(ORIGINAL_DATA_PATH + DATA_PATH + set + '/' + save_name, feature.astype(np.float32))
+            np.save(DATA_PATH + set + '/' + save_name, feature.astype(np.float32))
             print(save_name)
 
 
