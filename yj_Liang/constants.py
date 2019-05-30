@@ -1,9 +1,14 @@
+import torch
+
 # feature parameters
 SAMPLING_RATE = 44100
 N_FFT = 1024
 WIN_LENGTH = 1024
 HOP_LENGTH = 512 # determines number of frames
 NUM_MELS = 128
+MEL_FMIN = 30
+MEL_FMAX = SAMPLING_RATE // 2
+
 
 TRIM_SECOND_BEFORE = 0.2
 TRIM_SECOND_AFTER = 0.3
@@ -12,6 +17,7 @@ MIN_SRC = 0.3
 MAX_SRC = 2.3
 
 # training parameters
+DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # paths
 ORIGINAL_DATA_PATH = '/ssd2/maestro/maestro-v1.0.0/'
