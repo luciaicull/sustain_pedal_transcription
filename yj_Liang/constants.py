@@ -15,6 +15,7 @@ TRIM_SECOND_AFTER = 0.3
 ONSET_INPUT_SHAPE = (1, int(SAMPLING_RATE * (TRIM_SECOND_BEFORE + TRIM_SECOND_AFTER)))
 MIN_SRC = 0.3
 MAX_SRC = 2.3
+MAX_SP = int(MAX_SRC * SAMPLING_RATE)
 
 # training parameters
 DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
