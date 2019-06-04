@@ -51,7 +51,7 @@ class ExcerptDataset(Dataset):
         audio, sr = soundfile.read(audio_data_path + file_name + '.flac', dtype='int16')
 
         excerpt = audio[start:end]
-        excerpt = torch.ShortTensor(excerpt)
+        excerpt = torch.FloatTensor(excerpt).div_(32768.0)
 
         pedal = torch.FloatTensor([pedal])
 
