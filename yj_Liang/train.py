@@ -14,6 +14,7 @@ import torch.nn.functional as F
 
 
 def cycle(iterable):
+    print(iterable)
     while True:
         for item in iterable:
             yield item
@@ -31,7 +32,7 @@ config = dict(
     load_mode='ram',  # 'lazy'
     num_workers=4,
 
-    batch_size=1,
+    batch_size=20,
     sequence_length=16000 * 10,
     model_complexity=48,
 
@@ -85,7 +86,9 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
 
     i = 1
     for batch in cycle(loader):
-
+    #for batch, (x, y) in enumerate(loader):
+        #print(batch)
+        #print((x,y))
         # print(batch[0])
         optimizer.zero_grad()
         scheduler.step()
