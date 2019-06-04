@@ -4,11 +4,11 @@ import torch
 SAMPLING_RATE = 44100
 N_FFT = 1024
 WIN_LENGTH = 1024
-HOP_LENGTH = 512 # determines number of frames
+HOP_LENGTH = int(0.01*SAMPLING_RATE) # determines number of frames: frames per second = sample_rate / hop_length
 NUM_MELS = 128
 MEL_FMIN = 30
 MEL_FMAX = SAMPLING_RATE // 2
-
+N_STEP = (SAMPLING_RATE * 2 - 1) // HOP_LENGTH + 1
 
 TRIM_SECOND_BEFORE = 0.2
 TRIM_SECOND_AFTER = 0.3
@@ -18,6 +18,9 @@ MAX_SRC = 2.3
 
 # training parameters
 DEFAULT_DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+LEARNING_RATE = 1e-4
+BATCH_SIZE = 20
+NUM_EPOCHS = 100
 
 # paths
 ORIGINAL_DATA_PATH = '/ssd2/maestro/maestro-v1.0.0/'
