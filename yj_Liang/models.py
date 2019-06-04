@@ -100,24 +100,24 @@ class SegmentConv(nn.Module):
         self.fc = nn.Linear(504, 1)
 
     def forward(self, mel):
-        print('mel:' + str(mel))
-        print(mel.shape)
+        #print('mel:' + str(mel))
+        #print(mel.shape) # = (1, 1, 200, 128)
         x0 = self.pre_conv0(F.pad(mel, (9, 10, 1, 1)))
         x1 = self.pre_conv1(F.pad(mel, (1, 1, 9, 10)))
         x2 = self.pre_conv2(mel)
-        print(x0.shape, x1.shape, x2.shape)
+        #print(x0.shape, x1.shape, x2.shape) # = ((1, 7, 200, 128), (1, 7, 200, 128), (1, 7, 200, 128))
 
         x = torch.cat([x0, x1, x2], dim=1)
-        print(x.shape)
+        #print(x.shape)  # = (1, 21, 200, 128)
         x = self.conv(x)
-        print(x.shape)
+        #print(x.shape) # = (1, 21, 6, 4)
         x = x.view(x.shape[0], -1)
-        print(x.shape)
+        # print(x.shape) # = (1, 504)
         x = self.fc(x)
-        print(x.shape)
+        #print(x.shape) # = (1, 1)
         x = torch.sigmoid(x)
-        print(x.shape)
-        print('=======')
+        #print(x.shape) # = (1, 1)
+        #print('=======')
         return x
 
 
@@ -125,16 +125,20 @@ def run_on_batch(model, audio, label):
     audio = audio.to('cuda:0')
     label = label.to('cuda:0')
     audio = audio.squeeze(0)
-    print('audio shape')
-    print(audio.shape)
+    #print('audio shape')
+    #print(audio.shape)
+
     mel = melspectrogram(audio.reshape(-1, audio.shape[-1])[:, :-1]).transpose(-1, -2)
     n_pad = N_STEP - mel.shape[1]
     # print(n_pad)
+
     mel = mel.unsqueeze(dim=1)
     mel = F.pad(mel, (0, 0, 0, n_pad), mode='replicate')
     # print(mel.shape)
+
     pred = model(mel)
-    print(pred, label)
+    #print(pred, label)
+
     loss = F.binary_cross_entropy(pred, label)
 
     return pred, loss
