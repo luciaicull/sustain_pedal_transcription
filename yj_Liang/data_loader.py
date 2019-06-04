@@ -1,8 +1,13 @@
+from __future__ import division
+
 from abc import abstractmethod
 from torch.utils.data import Dataset
 import torch
 import soundfile
 import csv
+import math
+import torch.nn.functional as F
+import numpy as np
 
 from constants import *
 
@@ -28,12 +33,12 @@ class ExcerptDataset(Dataset):
 
 
     def __getitem__(self, index):
+        #print('index= ' + str(index))
         excerpt_info = self.excerpt_list[index]
         file_name = excerpt_info[0]
         start = int(excerpt_info[1])
         end = int(excerpt_info[2])
         pedal = 1.0 if excerpt_info[3]=='p' else 0.0
-
         if pedal:
             '''
             # unavailable to be used
@@ -49,9 +54,9 @@ class ExcerptDataset(Dataset):
             audio_data_path = DATA_PATH + CONVERTED_WAVE_PATH + 'non-pedal/'
 
         audio, sr = soundfile.read(audio_data_path + file_name + '.flac', dtype='int16')
-
         excerpt = audio[start:end]
         excerpt = torch.FloatTensor(excerpt).div_(32768.0)
+        excerpt = self.check_max_sp(excerpt)
 
         pedal = torch.FloatTensor([pedal])
 
@@ -132,6 +137,10 @@ class ExcerptDataset(Dataset):
 
         return excerpt_list
 
+    @abstractmethod
+    def check_max_sp(self, excerpt):
+        return excerpt
+
 
 class OnsetExcerptDataset(ExcerptDataset):
     def __init__(self, set):
@@ -140,6 +149,10 @@ class OnsetExcerptDataset(ExcerptDataset):
     @classmethod
     def get_csv_file(self, set):
         return set + '_onset'
+
+    @classmethod
+    def check_max_sp(self, excerpt):
+        return excerpt
 
 
 class SegmentExcerptDataset(ExcerptDataset):
@@ -150,9 +163,37 @@ class SegmentExcerptDataset(ExcerptDataset):
     def get_csv_file(self, set):
         return set + '_segment'
 
+    @classmethod
+    def check_max_sp(self, excerpt):
+        #print('start checking maximum sample point..')
+        #print(excerpt.shape)
+        excerpt_len = len(excerpt)
+        #print(MAX_SP)
+        if excerpt_len < MAX_SP:
+            for i in range(0,3):
+                excerpt = excerpt.unsqueeze(0)
+            #print(excerpt.shape)
+
+            num_pad = int(math.ceil(MAX_SP / excerpt_len)) - 1
+            #print(num_pad)
+            excerpt = F.pad(excerpt, (0, 0, 0, num_pad), mode='replicate')
+            #print(excerpt.shape)
+
+            excerpt = excerpt.squeeze()
+            #print(excerpt.shape)
+            excerpt = torch.flatten(excerpt)
+            #print(excerpt.shape)
+            excerpt = excerpt[:MAX_SP]
+            #print(excerpt.shape)
+        #print('end checking maximum sample point..')
+        return excerpt
+
+
 if __name__ == '__main__':
-    dataset = OnsetExcerptDataset('train')
+    dataset = SegmentExcerptDataset('train')
     a = iter(dataset)
     print('len = ' + str(len(dataset)))
     b = next(a)
     print(b)
+    print(dataset.__len__())
+
