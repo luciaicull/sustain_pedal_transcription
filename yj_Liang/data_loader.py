@@ -189,6 +189,36 @@ class SegmentExcerptDataset(ExcerptDataset):
         return excerpt
 
 
+class FullSongDataset(Dataset):
+    def __init__(self, audio_data, n_elem, nsp_excerpt, type_excerpt, hop_length):
+        self.audio_data = audio_data
+        self.n_elem = n_elem
+        self.nsp_excerpt = nsp_excerpt
+        self.type_excerpt = type_excerpt
+        self.hop_length = hop_length
+        self.tile_times = int(np.ceil(NSP_SRC / nsp_excerpt))
+
+    def __getitem__(self, index):
+        if self.type_excerpt == 'onset':
+            src_batch = torch.FloatTensor(np.array(
+                [self.audio_data[int(index * self.hop_length):
+                            int(index * self.hop_length + self.nsp_excerpt)]],
+                dtype=np.float))
+        elif self.type_excerpt == 'segment':
+            src_batch = torch.FloatTensor(np.array(
+                [np.tile(self.audio_data[int(index * self.hop_length):
+                                    int(index * self.hop_length + self.nsp_excerpt)], self.tile_times)
+                    [:NSP_SRC]],
+                dtype=np.float))
+
+        # Fake label --> Update later
+        label = torch.FloatTensor([0])
+        return src_batch, label
+
+    def __len__(self):
+        return self.n_elem
+
+
 if __name__ == '__main__':
     dataset = SegmentExcerptDataset('train')
     a = iter(dataset)

@@ -121,7 +121,7 @@ class SegmentConv(nn.Module):
         return x
 
 
-def run_on_batch(model, audio, label):
+def run_on_batch(model, audio, label, loss_reduction="mean"):
     audio = audio.to('cuda:0')
     label = label.to('cuda:0')
     audio = audio.squeeze(0)
@@ -139,6 +139,26 @@ def run_on_batch(model, audio, label):
     pred = model(mel)
     #print(pred, label)
 
-    loss = F.binary_cross_entropy(pred, label)
+    loss = F.binary_cross_entropy(pred, label, reduction=loss_reduction)
 
     return pred, loss
+
+def run_on_dataset(model, dataset):
+    preds = None
+    losss = None 
+    for idx, batch in enumerate(dataset):
+        with torch.no_grad():
+            pred, loss = run_on_batch(model, batch[0], batch[1], loss_reduction="none") # Does this make a problem with padding?
+
+        # Save memory on the GPU as dataset could be very big
+        pred = pred.to("cpu")
+        loss = loss.to("cpu")
+        if preds is None:
+            preds = pred
+        else:
+            preds = torch.cat((preds, pred), dim=0) # Stack them to create on big batch of tensors
+        if losss is None:
+            losss = loss
+        else:
+            losss = torch.cat((losss, loss), dim=0)
+    return preds, losss

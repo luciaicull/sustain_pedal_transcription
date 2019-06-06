@@ -1,3 +1,4 @@
 soundfile
 tqdm
 librosa
+matplotlib
