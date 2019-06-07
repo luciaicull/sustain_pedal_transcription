@@ -2,3 +2,4 @@ soundfile
 tqdm
 librosa
 matplotlib
+pretty-midi

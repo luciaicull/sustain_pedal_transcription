@@ -1,16 +1,19 @@
 from __future__ import division
+
+import pretty_midi
 from data_loader import FullSongDataset
 from constants import *
 import models
 import librosa.display
-import matplotlib.pyplot as plt
 import numpy as np
 import librosa
 from scipy.signal import medfilt
 import torch
 from torch.utils.data import DataLoader
+
 import matplotlib
 matplotlib.use('agg')  # Tkinter is not available on the server
+import matplotlib.pyplot as plt
 
 
 def intervals1tointervals01(segintervals1, paudio_duration):
@@ -50,6 +53,49 @@ def intervals1tointervals01(segintervals1, paudio_duration):
     return segintervals1, segintervals01, labels
 
 
+def generate_full_song_gt(midi_path):
+    # get ground truth pedal onset time from midi
+    pm = pretty_midi.PrettyMIDI(midi_path)
+    pedal_v = []
+    pedal_t = []
+    for control_change in pm.instruments[0].control_changes:
+        if control_change.number == 64:
+            pedal_v.append(control_change.value)
+            pedal_t.append(control_change.time)
+
+    pedal_onset = []
+    pedal_offset = []
+    for i, v in enumerate(pedal_v):
+        if i > 0 and v >= 64 and pedal_v[i-1] < 64:
+            pedal_onset.append(pedal_t[i])
+        elif i > 0 and v < 64 and pedal_v[i-1] >= 64:
+            pedal_offset.append(pedal_t[i])
+
+    pedal_offset = [t for t in pedal_offset if t > pedal_onset[0]]
+    seg_idxs = np.min([len(pedal_onset), len(pedal_offset)])
+    pedal_offset = pedal_offset[:seg_idxs]
+    pedal_onset = pedal_onset[:seg_idxs]
+    for seg_idx, offset in enumerate(pedal_offset):
+        if offset != pedal_offset[-1] and offset > pedal_onset[seg_idx] and offset < pedal_onset[seg_idx+1]:
+            correct_pedal_data = True
+        elif offset == pedal_offset[-1] and offset > pedal_onset[seg_idx]:
+            correct_pedal_data = True
+        else:
+            correct_pedal_data = False
+
+    # if correct_pedal_data:
+    #     filenames.append(filename)
+    #     pedal_onsets.append(pedal_onset)
+    #     pedal_offsets.append(pedal_offset)
+    #     categories.append(category_list[indx])
+    #     authors.append(author_list[indx])
+
+    if correct_pedal_data:
+        return np.array(pedal_onset), np.array(pedal_offset)
+    else:
+        return None, None
+
+
 class ManualFusion():
     def __init__(self, onset_model, segment_model, onset_threshold=0.98, segment_threshold=0.98):
         self.onset_model = onset_model.to("cuda:0")
@@ -61,7 +107,8 @@ class ManualFusion():
         self.onset_threshold = onset_threshold
         self.segment_threshold = segment_threshold
 
-    def predict(self, audio_data, batch_size=4):
+    def predict(self, audio_data, pedal_gt, batch_size=4):
+        pedal_onset_gt, pedal_offset_gt = pedal_gt
         # ======= Get prediciton of all onsets =======
         len_onset_shape = int(
             SAMPLING_RATE * (TRIM_SECOND_BEFORE + TRIM_SECOND_AFTER))
@@ -152,8 +199,7 @@ class ManualFusion():
         if onseg_initidxs[-1] >= offseg_initidxs[-1]:
             del onseg_initidxs[-1]
 
-        if (len(onseg_initidxs) != len(offseg_initidxs)):
-            # or not len(pedal_offset_gt) or not len(pedal_onset_gt):
+        if (len(onseg_initidxs) != len(offseg_initidxs)) or not len(pedal_offset_gt) or not len(pedal_onset_gt):
             print(" skip!")
         else:
             onseg_idxs = []
@@ -185,16 +231,18 @@ class ManualFusion():
                 segframes_gt = np.zeros(n_frames)
                 segframes_est = np.zeros(n_frames)
 
-                # longpseg_idx = np.where((pedal_offset_gt-pedal_onset_gt)>seghop_duration)[0]
-                # longseg_onset_gt = pedal_onset_gt[longpseg_idx]
-                # longseg_offset_gt = pedal_offset_gt[longpseg_idx]
-                # segintervals_gt = np.stack((longseg_onset_gt,longseg_offset_gt), axis=-1)
+                longpseg_idx = np.where(
+                    (pedal_offset_gt-pedal_onset_gt) > seghop_duration)[0]
+                longseg_onset_gt = pedal_onset_gt[longpseg_idx]
+                longseg_offset_gt = pedal_offset_gt[longpseg_idx]
+                segintervals_gt = np.stack(
+                    (longseg_onset_gt, longseg_offset_gt), axis=-1)
 
-                # for idx, onset_t in enumerate(longseg_onset_gt):
-                #     offset_t = longseg_offset_gt[idx]
-                #     onset_frm = int(onset_t//seghop_duration)
-                #     offset_frm = int(offset_t//seghop_duration)
-                #     segframes_gt[onset_frm:offset_frm] = 1
+                for idx, onset_t in enumerate(longseg_onset_gt):
+                    offset_t = longseg_offset_gt[idx]
+                    onset_frm = int(onset_t // seghop_duration)
+                    offset_frm = int(offset_t // seghop_duration)
+                    segframes_gt[onset_frm:offset_frm] = 1
 
                 for idx, onset_t in enumerate(onseg_times):
                     offset_t = offseg_times[idx]
@@ -211,7 +259,7 @@ class ManualFusion():
             # left, right = [150, 170]
             plt.figure(figsize=(15, 5))
             librosa.display.waveplot(audio_data, SAMPLING_RATE, alpha=0.8)
-            # plt.fill_between(frmtimes, 0, 0.5, where=segframes_gt>0, facecolor='green', alpha=0.7, label='ground truth')
+            plt.fill_between(frmtimes, 0, 0.5, where=segframes_gt>0, facecolor='green', alpha=0.7, label='ground truth')
             plt.fill_between(frmtimes, -0.5, 0, where=segframes_est >
                              0, facecolor='orange', alpha=0.7, label='estimation')
             # plt.title("Pedal segment detection of {}".format(filename))
@@ -231,16 +279,22 @@ if __name__ == '__main__':
     segment_model.load_state_dict(torch.load(
         "test_models/onset_conv.pt")["model_state_dict"])
 
+    file_name = "2011/MIDI-Unprocessed_22_R1_2011_MID--AUDIO_R1-D8_12_Track12_wav"
+
+    test_audio_file = ORIGINAL_DATA_PATH + file_name + ".flac"
+    test_midi_file = ORIGINAL_DATA_PATH + file_name + ".midi"
+
     # Load any audio file to test
-    audio, sr = librosa.load(DATA_PATH + CONVERTED_WAVE_PATH + "pedal/" + "2011/" +
-                             "MIDI-Unprocessed_22_R1_2011_MID--AUDIO_R1-D8_12_Track12_wav.flac", sr=SAMPLING_RATE)
+    audio, sr = librosa.load(test_audio_file, sr=SAMPLING_RATE)
     print(audio.shape[0])
     shift = 0
     scale = 1
     start, end = int(
         shift * audio.shape[0] / scale), int((shift + 1) * audio.shape[0] / scale)
     audio = audio[start: end]
+    # Load corresponding midi file
+    pedal_gt = generate_full_song_gt(test_midi_file)
 
     manual_fuser = ManualFusion(
         onset_model, segment_model, onset_threshold=0.2, segment_threshold=0.2)
-    frame_wise_prediction = manual_fuser.predict(audio)
+    frame_wise_prediction = manual_fuser.predict(audio, pedal_gt)
