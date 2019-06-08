@@ -38,27 +38,27 @@ class OnsetConv(nn.Module):
             nn.Dropout(0.25),
         )
 
-        nn.fc = nn.Linear(420,1)
+        self.fc = nn.Linear(504,1)
 
     def forward(self, mel):
-        print('mel:' + str(mel))
-        print(mel.shape)
+        # print('mel:' + str(mel))
+        # print(mel.shape)
         x0 = self.pre_conv0(F.pad(mel, (9, 10, 1, 1)))
         x1 = self.pre_conv1(F.pad(mel, (1, 1, 9, 10)))
         x2 = self.pre_conv2(mel)
-        print(x0.shape, x1.shape, x2.shape)
+        # print(x0.shape, x1.shape, x2.shape)
 
         x = torch.cat([x0, x1, x2], dim=1)
-        print(x)
+        # print(x)
         x = self.conv(x)
-        print(x)
+        # print(x)
         x = x.view(x.shape[0], -1)
-        print(x)
+        # print(x)
         x = self.fc(x)
-        print(x)
+        # print(x)
         x = torch.sigmoid(x)
-        print(x)
-        print('=======')
+        # print(x)
+        # print('=======')
         return x
 
 

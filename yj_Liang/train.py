@@ -25,14 +25,14 @@ config = dict(
     device=[0],
     iterations=500000,
     resume_iteration=None,
-    checkpoint_interval=1000,
-    #model_name='OnsetConv',
+    checkpoint_interval=100,
+    # model_name='OnsetConv',
     model_name='SegmentConv',
 
     load_mode='ram',  # 'lazy'
-    num_workers=4,
+    num_workers=2,
 
-    batch_size=20,
+    batch_size=16,
     sequence_length=16000 * 10,
     model_complexity=48,
 
@@ -43,6 +43,7 @@ config = dict(
     clip_gradient_norm=3,
 
     validation_interval=500,
+    print_interval=10,
 
     debug=False
 )
@@ -51,18 +52,26 @@ config = dict(
 def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_interval, load_mode, num_workers,
           batch_size, sequence_length,
           model_complexity, learning_rate, learning_rate_decay_steps, learning_rate_decay_rate, clip_gradient_norm,
-          validation_interval, debug):
+          validation_interval, print_interval, debug):
     default_device = 'cpu' if len(device) == 0 else 'cuda:0'
+
+    logdir += model_name
 
     os.makedirs(logdir)
     # writer = SummaryWriter(logdir + '/train')
     # valid_writer = SummaryWriter(logdir + '/valid')
 
-    dataset = SegmentExcerptDataset(set='train')
+    print("Running a {}-model".format(model_name))
+    if model_name == "SegmentConv":
+        dataset = SegmentExcerptDataset(set='train')
+        validation_dataset = SegmentExcerptDataset(set='test')
+    elif model_name == "OnsetConv":
+        dataset = OnsetExcerptDataset(set='train')
+        validation_dataset = OnsetExcerptDataset(set='train')
 
     loader = DataLoader(dataset, batch_size, shuffle=True, num_workers=num_workers)
-
-    validation_dataset = SegmentExcerptDataset(set='test')
+    validation_loader = DataLoader(validation_dataset, batch_size, shuffle=False, num_workers=num_workers)
+    
 
     model_class = getattr(models, model_name)
     model = model_class()
@@ -85,6 +94,7 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
     scheduler = StepLR(optimizer, step_size=learning_rate_decay_steps, gamma=learning_rate_decay_rate)
 
     i = 1
+    total_loss = 0
     for batch in cycle(loader):
     #for batch, (x, y) in enumerate(loader):
         #print(batch)
@@ -100,24 +110,36 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
         # writer.add_scalar('loss', loss, global_step=i)
 
         optimizer.step()
-        print("loss: {:.3f}".format(loss))
-        # loop.set_postfix_str("loss: {:.3f}".format(loss))
 
-        if i % validation_interval == 0:
-            model.eval()
-            with torch.no_grad():
-                for batch in validation_dataset:
-                    pred, loss = models.run_on_batch(model, batch[0], batch[1])
-                    print("valid_loss: {:.3f}".format(loss))
-                    # valid_writer.add_scalar('loss', loss, global_step=i)
-            model.train()
+        # print("loss: {:.3f}".format(loss))
+        # loop.set_postfix_str("loss: {:.3f}".format(loss))
+        total_loss += loss.item()
+
+        if i % print_interval == 0:
+            print("total_train_loss: {:.3f} minibatch: {:6d}".format(total_loss / print_interval, i))
+            total_loss = 0
 
         if i % checkpoint_interval == 0:
             state_dict = model.module.state_dict() if len(device) >= 2 else model.state_dict()
             torch.save({'model_state_dict': state_dict,
                         'optimizer_state_dict': optimizer.state_dict(),
                         'model_name': model_name},
-                       os.path.join(logdir, 'model-{:d}.pt' % i))
+                       os.path.join(logdir, 'model-{:d}.pt'.format(i)))
+
+        if i % validation_interval == 0:
+            model.eval()
+            with torch.no_grad():
+                total_validation_loss = 0
+                for batch in validation_loader:
+                    pred, loss = models.run_on_batch(model, batch[0], batch[1])
+                    total_validation_loss += loss.item()
+                    # print("valid_loss: {:.3f}".format(loss))
+                    # valid_writer.add_scalar('loss', loss, global_step=i)
+                total_validation_loss /= len(validation_dataset)
+                print("total_valid_loss: {:.3f} minibatch: {:6d}".format(total_validation_loss), i)
+            model.train()
+
+
         i += 1
 
 
