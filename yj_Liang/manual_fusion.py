@@ -251,7 +251,8 @@ class ManualFusion():
                     segframes_est[onset_frm: offset_frm] = 1
 
                 # set the ground truth and estimation results as interval format
-                # segintervals1_gt, segintervals01_gt, labels_gt = intervals1tointervals01(segintervals_gt, paudio_duration)
+                segintervals1_gt, segintervals01_gt, labels_gt = intervals1tointervals01(
+                    segintervals_gt, audio_duration)
                 segintervals1_est, segintervals01_est, labels_est = intervals1tointervals01(
                     segintervals_est, audio_duration)
 
@@ -259,7 +260,8 @@ class ManualFusion():
             # left, right = [150, 170]
             plt.figure(figsize=(15, 5))
             librosa.display.waveplot(audio_data, SAMPLING_RATE, alpha=0.8)
-            plt.fill_between(frmtimes, 0, 0.5, where=segframes_gt>0, facecolor='green', alpha=0.7, label='ground truth')
+            plt.fill_between(frmtimes, 0, 0.5, where=segframes_gt >
+                             0, facecolor='green', alpha=0.7, label='ground truth')
             plt.fill_between(frmtimes, -0.5, 0, where=segframes_est >
                              0, facecolor='orange', alpha=0.7, label='estimation')
             # plt.title("Pedal segment detection of {}".format(filename))
@@ -277,7 +279,7 @@ if __name__ == '__main__':
     onset_model.load_state_dict(torch.load(
         "test_models/onset_conv.pt")["model_state_dict"])
     segment_model.load_state_dict(torch.load(
-        "test_models/onset_conv.pt")["model_state_dict"])
+        "test_models/segment_conv.pt")["model_state_dict"])
 
     file_name = "2011/MIDI-Unprocessed_22_R1_2011_MID--AUDIO_R1-D8_12_Track12_wav"
 
