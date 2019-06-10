@@ -26,11 +26,11 @@ config = dict(
     iterations=500000,
     resume_iteration=None,
     checkpoint_interval=100,
-    # model_name='OnsetConv',
-    model_name='SegmentConv',
+    model_name='OnsetConv',
+    # model_name='SegmentConv',
 
     load_mode='ram',  # 'lazy'
-    num_workers=2,
+    num_workers=1,
 
     batch_size=16,
     sequence_length=16000 * 10,
@@ -42,7 +42,7 @@ config = dict(
 
     clip_gradient_norm=3,
 
-    validation_interval=500,
+    validation_interval=50000,
     print_interval=10,
 
     debug=False
@@ -120,7 +120,7 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
         total_loss += loss.item()
 
         if i % print_interval == 0:
-            print("total_train_loss: {:.3f} minibatch: {:6d}".format(total_loss / print_interval, i))
+            print("total_train_loss: {:.3f} minibatch: {:6d}/{:6d}".format(total_loss / print_interval, i, len(loader)))
             total_loss = 0
 
         if i % checkpoint_interval == 0:
@@ -134,12 +134,17 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
             model.eval()
             with torch.no_grad():
                 total_validation_loss = 0
+                counter = 0
                 for batch in validation_loader:
                     pred, loss = models.run_on_batch(model, batch[0], batch[1])
                     total_validation_loss += loss.item()
                     # print("valid_loss: {:.3f}".format(loss))
                     # valid_writer.add_scalar('loss', loss, global_step=i)
-                total_validation_loss /= len(validation_dataset)
+                    counter += 1
+                    if counter == 100:
+                        break
+                # total_validation_loss /= len(validation_dataset)
+                total_validation_loss /= counter
                 print("total_valid_loss: {:.3f} minibatch: {:6d}".format(total_validation_loss), i)
             model.train()
 
