@@ -91,6 +91,10 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
         optimizer = torch.optim.Adam(model.parameters(), learning_rate)
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
+    for layer in model.modules():
+        if isinstance(layer, torch.nn.Conv2d):
+            torch.nn.init.xavier_uniform_(layer.weight)
+
     scheduler = StepLR(optimizer, step_size=learning_rate_decay_steps, gamma=learning_rate_decay_rate)
 
     i = 1
