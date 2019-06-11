@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from constants import *
 from mel import melspectrogram
+import torchaudio
 
 class OnsetConv(nn.Module):
     def __init__(self):
@@ -128,12 +129,35 @@ def run_on_batch(model, audio, label, loss_reduction="mean"):
     #print('audio shape')
     #print(audio.shape)
 
-    mel = melspectrogram(audio.reshape(-1, audio.shape[-1])[:, :-1]).transpose(-1, -2)
-    n_pad = N_STEP - mel.shape[1]
-    # print(n_pad)
+    mel_transform = torchaudio.transforms.MelSpectrogram(
+        sr=SAMPLING_RATE, n_fft=N_FFT, ws=WIN_LENGTH, hop=HOP_LENGTH, f_max=float(MEL_FMAX), f_min=float(MEL_FMIN), n_mels=NUM_MELS).cuda()
 
-    mel = mel.unsqueeze(dim=1)
-    mel = F.pad(mel, (0, 0, 0, n_pad), mode='replicate')
+    mel = None
+
+    if True:
+        mel = melspectrogram(audio.reshape(-1, audio.shape[-1])[:, :-1]).transpose(-1, -2)
+        n_pad = N_STEP - mel.shape[1]
+        # print(n_pad)
+
+        mel = mel.unsqueeze(dim=1)
+        mel = F.pad(mel, (0, 0, 0, n_pad), mode='replicate')
+        
+    else:
+        for idx, sample in enumerate(audio):
+            sample = sample.unsqueeze(dim=0)
+
+            # print(audio.type())
+            print(sample.type())
+
+            transformed_audio = mel_transform(sample)
+            # print(mel)
+            # print(transformed_audio.shape)
+            # print(transformed_audio.type())
+            if mel is None:
+                mel = transformed_audio
+            else:
+                mel = torch.cat((mel, transformed_audio), dim=0)
+    
     # print(mel.shape)
 
     pred = model(mel)
