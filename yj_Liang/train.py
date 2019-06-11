@@ -63,11 +63,12 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
 
     print("Running a {}-model".format(model_name))
     if model_name == "SegmentConv":
-        dataset = SegmentExcerptDataset(set='train')
-        validation_dataset = SegmentExcerptDataset(set='test')
+        dataset_class = SegmentExcerptDataset
     elif model_name == "OnsetConv":
-        dataset = OnsetExcerptDataset(set='train')
-        validation_dataset = OnsetExcerptDataset(set='train')
+        dataset_class = OnsetExcerptDataset
+    
+    dataset = dataset_class(set='train')
+    validation_dataset = dataset_class(set='test')
 
     loader = DataLoader(dataset, batch_size, shuffle=True, num_workers=num_workers)
     validation_loader = DataLoader(validation_dataset, batch_size, shuffle=False, num_workers=num_workers)
