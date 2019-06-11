@@ -22,7 +22,7 @@ def cycle(iterable):
 
 config = dict(
     logdir='runs/pedal-' + datetime.now().strftime('%y%m%d-%H%M%S'),
-    device=[0],
+    device=[0], # Define GPU to train, if [] cpu will be used
     iterations=500000,
     resume_iteration=None,
     checkpoint_interval=100,
@@ -32,7 +32,7 @@ config = dict(
     load_mode='ram',  # 'lazy'
     num_workers=1,
 
-    batch_size=16,
+    batch_size=32,
     sequence_length=16000 * 10,
     model_complexity=48,
 
@@ -42,7 +42,7 @@ config = dict(
 
     clip_gradient_norm=3,
 
-    validation_interval=50000,
+    validation_interval=500,
     print_interval=10,
 
     debug=False
@@ -53,7 +53,8 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
           batch_size, sequence_length,
           model_complexity, learning_rate, learning_rate_decay_steps, learning_rate_decay_rate, clip_gradient_norm,
           validation_interval, print_interval, debug):
-    default_device = 'cpu' if len(device) == 0 else 'cuda:0'
+    default_device = 'cpu' if len(device) == 0 else 'cuda:{}'.format(device[0])
+    print("Traiing on: {}".format(default_device))
 
     logdir += model_name
 
@@ -73,9 +74,7 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
     loader = DataLoader(dataset, batch_size, shuffle=True, num_workers=num_workers)
     validation_loader = DataLoader(validation_dataset, batch_size, shuffle=False, num_workers=num_workers)
     
-
-    model_class = getattr(models, model_name)
-    model = model_class()
+    model = models.ConvModel(device=default_device)
 
     if resume_iteration is None:
         model = model.to(default_device)
@@ -109,7 +108,7 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
         optimizer.zero_grad()
         scheduler.step()
         loss = 0
-        pred, loss = models.run_on_batch(model, batch[0], batch[1])
+        pred, loss = models.run_on_batch(model, batch[0], batch[1], device=default_device)
         loss.backward()
         if clip_gradient_norm:
             clip_grad_norm_(model.parameters(), clip_gradient_norm)
