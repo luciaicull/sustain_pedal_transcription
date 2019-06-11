@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 import numpy as np
-# from tensorboardX import SummaryWriter
+from tensorboardX import SummaryWriter
 from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
@@ -58,7 +58,7 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
     logdir += model_name
 
     os.makedirs(logdir)
-    # writer = SummaryWriter(logdir + '/train')
+    writer = SummaryWriter(logdir)
     # valid_writer = SummaryWriter(logdir + '/valid')
 
     print("Running a {}-model".format(model_name))
@@ -100,6 +100,7 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
 
     i = 1
     total_loss = 0
+    best_validation_loss = 1
     for batch in cycle(loader):
     #for batch, (x, y) in enumerate(loader):
         #print(batch)
@@ -112,7 +113,6 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
         loss.backward()
         if clip_gradient_norm:
             clip_grad_norm_(model.parameters(), clip_gradient_norm)
-        # writer.add_scalar('loss', loss, global_step=i)
 
         optimizer.step()
 
@@ -122,6 +122,7 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
 
         if i % print_interval == 0:
             print("total_train_loss: {:.3f} minibatch: {:6d}/{:6d}".format(total_loss / print_interval, i, len(loader)))
+            writer.add_scalar('data/loss', total_loss / print_interval, global_step=i)
             total_loss = 0
 
         if i % checkpoint_interval == 0:
@@ -137,16 +138,20 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
                 total_validation_loss = 0
                 counter = 0
                 for batch in validation_loader:
-                    pred, loss = models.run_on_batch(model, batch[0], batch[1])
+                    pred, loss = models.run_on_batch(model, batch[0], batch[1], device=default_device)
                     total_validation_loss += loss.item()
-                    # print("valid_loss: {:.3f}".format(loss))
-                    # valid_writer.add_scalar('loss', loss, global_step=i)
-                    counter += 1
-                    if counter == 100:
-                        break
-                # total_validation_loss /= len(validation_dataset)
-                total_validation_loss /= counter
-                print("total_valid_loss: {:.3f} minibatch: {:6d}".format(total_validation_loss), i)
+                
+                total_validation_loss /= len(validation_dataset)
+                print("total_valid_loss: {:.3f} minibatch: {:6d}".format(total_validation_loss, i))
+                writer.add_scalar('data/valid_loss', total_validation_loss, global_step=i)
+
+                if total_validation_loss < best_validation_loss:
+                    best_validation_loss = total_validation_loss
+                    torch.save({'model_state_dict': state_dict,
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'model_name': model_name},
+                       os.path.join(logdir, 'model-best-val-loss'))
+
             model.train()
 
 

@@ -3,3 +3,6 @@ tqdm
 librosa
 matplotlib
 pretty-midi
+tensorboardX==1.6
+tensorboard
+tensorflow
