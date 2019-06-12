@@ -81,7 +81,8 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
         optimizer = torch.optim.Adam(model.parameters(), learning_rate)
         resume_iteration = 0
     else:
-        model_state_path = os.path.join(logdir, 'model-{:d}.pt' % resume_iteration)
+        # model_state_path = os.path.join(logdir, 'model-{:d}.pt' % resume_iteration)
+        model_state_path = os.path.join(logdir, 'model-checkpoint.pt')
         checkpoint = torch.load(model_state_path)
         model.load_state_dict(checkpoint['model_state_dict'])
         if len(device) == 1:
@@ -129,7 +130,8 @@ def train(logdir, device, model_name, iterations, resume_iteration, checkpoint_i
             torch.save({'model_state_dict': state_dict,
                         'optimizer_state_dict': optimizer.state_dict(),
                         'model_name': model_name},
-                       os.path.join(logdir, 'model-{:d}.pt'.format(i)))
+                        # os.path.join(logdir, 'model-{:d}.pt'.format(i)))
+                        os.path.join(logdir, 'model-checkpoint.pt'))
 
         if i % validation_interval == 0:
             model.eval()
