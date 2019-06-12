@@ -87,12 +87,12 @@ def run_on_batch(model, audio, label, loss_reduction="mean", device="cpu"):
 
     return pred, loss
 
-def run_on_dataset(model, dataset):
+def run_on_dataset(model, dataset, device="cpu"):
     preds = None
     losss = None 
     for idx, batch in enumerate(dataset):
         with torch.no_grad():
-            pred, loss = run_on_batch(model, batch[0], batch[1], loss_reduction="none") # Does this make a problem with padding?
+            pred, loss = run_on_batch(model, batch[0], batch[1], loss_reduction="none", device=device) # Does this make a problem with padding?
 
         # Save memory on the GPU as dataset could be very big
         pred = pred.to("cpu")

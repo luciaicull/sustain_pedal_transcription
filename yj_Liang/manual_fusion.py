@@ -98,8 +98,9 @@ def generate_full_song_gt(midi_path):
 
 class ManualFusion():
     def __init__(self, onset_model, segment_model, onset_threshold=0.98, segment_threshold=0.98):
-        self.onset_model = onset_model.to("cuda:0")
-        self.segment_model = segment_model.to("cuda:0")
+        self.device = "cuda:0"
+        self.onset_model = onset_model.to(self.device)
+        self.segment_model = segment_model.to(self.device)
 
         self.onset_model.eval()
         self.segment_model.eval()
@@ -123,7 +124,7 @@ class ManualFusion():
         data_full_song = FullSongDataset(
             audio_data, n_onset, len_onset_shape, "onset", onsethop_length)
         loader = DataLoader(data_full_song, batch_size)
-        pred_onset, _ = models.run_on_dataset(self.onset_model, loader)
+        pred_onset, _ = models.run_on_dataset(self.onset_model, loader, device=self.device)
         pred_onset = pred_onset.squeeze()
         # print("Onset Prediction:\n{}".format(pred_onset))
 
@@ -141,7 +142,7 @@ class ManualFusion():
         print("n_segment: {}".format(n_segment))
 
         data_full_song.type_excerpt, data_full_song.n_elem = "segment", n_segment
-        pred_segment, _ = models.run_on_dataset(self.segment_model, loader)
+        pred_segment, _ = models.run_on_dataset(self.segment_model, loader, device=self.device)
         pred_segment = pred_segment.squeeze()
         # print("Segment Prediction:\n{}".format(pred_segment))
 
@@ -270,11 +271,12 @@ class ManualFusion():
             # plt.show()
             plt.savefig("test")
 
+            return segframes_est
 
 if __name__ == '__main__':
     # Load some test models
-    onset_model = models.OnsetConv()
-    segment_model = models.SegmentConv()
+    onset_model = models.ConvModel()
+    segment_model = models.ConvModel()
 
     onset_model.load_state_dict(torch.load(
         "test_models/onset_conv.pt")["model_state_dict"])
@@ -298,5 +300,5 @@ if __name__ == '__main__':
     pedal_gt = generate_full_song_gt(test_midi_file)
 
     manual_fuser = ManualFusion(
-        onset_model, segment_model, onset_threshold=0.2, segment_threshold=0.2)
+        onset_model, segment_model, onset_threshold=0.98, segment_threshold=0.98)
     frame_wise_prediction = manual_fuser.predict(audio, pedal_gt)
