@@ -124,14 +124,16 @@ class ManualFusion():
         data_full_song = FullSongDataset(
             audio_data, n_onset, len_onset_shape, "onset", onsethop_length)
         loader = DataLoader(data_full_song, batch_size)
-        pred_onset, _ = models.run_on_dataset(self.onset_model, loader, device=self.device)
+        pred_onset, _ = models.run_on_dataset(
+            self.onset_model, loader, device=self.device)
         pred_onset = pred_onset.squeeze()
         # print("Onset Prediction:\n{}".format(pred_onset))
 
         pred_onset_filter = medfilt(pred_onset, 15)
         frmtime_onset = np.arange(n_onset) * \
             onsethop_duration + TRIM_SECOND_BEFORE
-        print("Filtered Onset Prediction:\n{}".format(pred_onset_filter))
+        print("Filtered Onset Prediction:\n{}\nMax: {}, Min: {}\n".format(
+            pred_onset_filter, np.max(pred_onset_filter), np.min(pred_onset_filter)))
 
         # ======= Get prediciton of all segments =======
         len_segment_shape = int(SAMPLING_RATE * MIN_SRC)
@@ -142,7 +144,8 @@ class ManualFusion():
         print("n_segment: {}".format(n_segment))
 
         data_full_song.type_excerpt, data_full_song.n_elem = "segment", n_segment
-        pred_segment, _ = models.run_on_dataset(self.segment_model, loader, device=self.device)
+        pred_segment, _ = models.run_on_dataset(
+            self.segment_model, loader, device=self.device)
         pred_segment = pred_segment.squeeze()
         # print("Segment Prediction:\n{}".format(pred_segment))
 
@@ -272,6 +275,7 @@ class ManualFusion():
             plt.savefig("test")
 
             return segframes_est
+
 
 if __name__ == '__main__':
     # Load some test models
